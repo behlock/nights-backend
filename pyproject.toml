@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "nights-retrieval"
+version = "0.1.0"
+description = "Nights Retrieval"
+authors = ["behlock"]
+
+[tool.poetry.dependencies]
+python = "^3.10.0"
+
+[tool.poetry.dev-dependencies]
+black = {version = ">=21",allow-prereleases = true}
+flake8 = "^3.7"
+mypy = "<1"
+pep8-naming = "^0.8.2"
+poetry = "<2"
+pytest = "^7.1.3"
+typed-ast = "^1.5.3"
+typer = "^0.3.2"
+types-requests = "^2.25.6"
+vulture = "^2.3"
+
+[tool.black]
+line-length = 99
+target-version = ["py310"]
+extend-exclude = ".venv/*"
+
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
