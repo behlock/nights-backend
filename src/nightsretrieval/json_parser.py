@@ -9,7 +9,7 @@ def nights_ids_from_json(nights_json):
     return nights_ids
 
 
-def night_from_json(night_json):
+def full_event_from_json(night_json):
     return {
         "ra_id": int(night_json["id"]),
         "title": night_json["title"],
@@ -45,12 +45,12 @@ def night_from_json(night_json):
                 "ra_id": int(ticket["id"]),
                 "title": ticket["title"],
                 "price": ticket["priceRetail"],
-                "on_sale_from": ticket["onSaleFrom"],
+                "on_sale_from": str_to_datetime(ticket["onSaleFrom"]),
                 "valid_type": ticket["validType"],
             }
             for ticket in night_json["tickets"]
         ],
         "genres": [
-            {"ra_id": int(genre["id"]), "name": genre["name"]} for genre in night_json["genres"]
+            {"name": genre["name"]} for genre in night_json["genres"]
         ],
     }

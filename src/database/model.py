@@ -50,9 +50,9 @@ class Venues(Base):  # type: ignore
     ra_id = sqla.Column(sqla.String, nullable=False, index=False)
     night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
     name = sqla.Column(sqla.String, nullable=False, index=False)
-    address = sqla.Column(sqla.String, nullable=False, index=False)
+    address = sqla.Column(sqla.String, nullable=True, index=False)
     area_id = sqla.Column(sqla.Integer, ForeignKey("areas.id"), nullable=False, index=False)
-    website_url = sqla.Column(sqla.String, nullable=False, index=False)
+    # website_url = sqla.Column(sqla.String, nullable=False, index=False)
 
 
 class Tickets(Base):  # type: ignore
@@ -62,7 +62,7 @@ class Tickets(Base):  # type: ignore
     night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
     title = sqla.Column(sqla.String, nullable=False, index=False)
     price = sqla.Column(sqla.String, nullable=False, index=False)
-    on_sale_from = sqla.Column(sqla.DateTime, nullable=False, index=False)
+    on_sale_from = sqla.Column(sqla.DateTime, nullable=True, index=False)
     valid_type = sqla.Column(sqla.String, nullable=False, index=False)
 
 
@@ -82,7 +82,8 @@ class Artists(Base):  # type: ignore
     ra_id = sqla.Column(sqla.String, nullable=False, index=False)
     night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
     name = sqla.Column(sqla.String, nullable=False, index=False)
-    spotify_id = sqla.Column(sqla.String, nullable=False, index=False)
+    # TODO
+    # spotify_id = sqla.Column(sqla.String, nullable=True, index=False)
 
 
 class Genres(Base):  # type: ignore
@@ -90,4 +91,5 @@ class Genres(Base):  # type: ignore
 
     id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
     name = sqla.Column(sqla.String, nullable=False, index=False)
-    artist_id = sqla.Column(sqla.Integer, ForeignKey("artists.id"), nullable=False, index=False)
+    # TODO
+    # artist_id = sqla.Column(sqla.Integer, ForeignKey("artists.id"), nullable=True, index=False)
