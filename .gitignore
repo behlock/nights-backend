@@ -1,0 +1,52 @@
+*.py[cod]
+
+# C extensions
+*.so
+
+
+*.pycache
+__pycache__/
+
+.local/
+.vagrant/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+coverage/
+
+# Virtualenvs
+venv/*
+
+.venv/
+
+# PyCharm etc
+.idea/
+
+# Various project-related
+*.graphml
+output/*
+misc/*
+external/*
+*egg-info
+
+# Local / Docker compose stuff
+*.jar
+
+# JSCPD
+report/
+
+.python-version
+
+# VS Code
+.vscode/
+
+# Package version written at build time
+src/calver-version.txt

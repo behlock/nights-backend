@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "nights-retrieval"
-version = "0.1.0"
-description = "Nights Retrieval"
+version = "1"
+description = "A GraphQL service to store nights data"
 authors = ["behlock"]
 
 [tool.poetry.dependencies]
@@ -9,6 +9,17 @@ python = "^3.10.0"
 graphene = "^3.2.2"
 typer = "^0.9.0"
 flask = "^2.3.2"
+logging = "^0.4.9.6"
+graphql-utilities = "^0.4.0"
+uvicorn = "^0.23.1"
+starlette = "0.27.0"
+structlog = "^23.1.0"
+fastapi = "^0.100.0"
+sqlalchemy = "^2.0.19"
+psycopg2 = "^2.9.6"
+python-dotenv = "^1.0.0"
+pymysql = "^1.1.0"
+mysql-connector-python = "^8.1.0"
 
 [tool.poetry.dev-dependencies]
 black = {version = ">=21",allow-prereleases = true}
