@@ -1,9 +1,7 @@
-from dotenv import load_dotenv
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
-
-from version_control_system.model import Base
 
 load_dotenv()
 
@@ -14,14 +12,14 @@ HOST = os.getenv("HOST")
 PORT = os.getenv("PORT")
 DATABASE = os.getenv("DATABASE")
 
+# CONNECTION_STRING = f"mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
+CONNECTION_STRING = "sqlite:///nightsretrieval.db"
 
-def create_db() -> None:
+
+def init_engine():
     try:
-        # connection_string = f"mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-        connection_string = "sqlite:///nightsretrieval.db"
-        engine = create_engine(url=connection_string, echo=True)
-
-        Base.metadata.create_all(engine)
+        engine = create_engine(url=CONNECTION_STRING, echo=True)
+        return engine
 
     except Exception as ex:
         print("Connection could not be made due to the following error: \n", ex)

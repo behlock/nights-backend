@@ -9,7 +9,7 @@ class Nights(Base):  # type: ignore
     __tablename__ = "nights"
 
     id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
+    ra_id = sqla.Column(sqla.Integer, nullable=False, index=False)
     title = sqla.Column(sqla.String, nullable=False, index=False)
     date = sqla.Column(sqla.DateTime, nullable=False, index=False)
     content = sqla.Column(sqla.String, nullable=True, index=False)

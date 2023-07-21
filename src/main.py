@@ -1,4 +1,6 @@
-from nightsretrieval.__main__ import create_db
+# TODO: find way to make this neater
+from nightsretrieval.main import main
+
 
 if __name__ == "__main__":
-    create_db()
+    main()
