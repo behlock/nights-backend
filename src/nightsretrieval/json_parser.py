@@ -1,15 +1,16 @@
-from utils.datetime import str_to_datetime
+from typing import Dict, Any, List, Optional
+from utils.datetime_ex import str_to_datetime
 
 
-def nights_ids_from_json(nights_json):
+def nights_ids_from_json(nights_json: Optional[Dict[str, Any]]) -> List[int]:
     nights_ids = []
-    for night in nights_json["data"]["eventListings"]["data"]:
+    for night in nights_json["data"]["eventListings"]["data"]:  # type: ignore
         nights_ids.append(night["event"]["id"])
 
     return nights_ids
 
 
-def full_event_from_json(night_json):
+def full_event_from_json(night_json: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "ra_id": int(night_json["id"]),
         "title": night_json["title"],
@@ -50,7 +51,5 @@ def full_event_from_json(night_json):
             }
             for ticket in night_json["tickets"]
         ],
-        "genres": [
-            {"name": genre["name"]} for genre in night_json["genres"]
-        ],
+        "genres": [{"name": genre["name"]} for genre in night_json["genres"]],
     }

@@ -12,11 +12,17 @@ from database.operations import (
 )
 from nightsretrieval.json_parser import full_event_from_json, nights_ids_from_json
 from nightsretrieval.ra import get_event, get_event_listings
+from utils.datetime_ex import datetime_to_str
+
+AREA_ID = 13  # London
+NUMBER_OF_EVENTS = 50
+LISTING_DATE = datetime_to_str(datetime.now())
 
 
-def main():
+def main() -> None:
     create_tables()
-    events_ids = nights_ids_from_json(get_event_listings())
+    listings = get_event_listings(AREA_ID, NUMBER_OF_EVENTS, LISTING_DATE)
+    events_ids = nights_ids_from_json(listings)
 
     events_json = []
     for event_id in events_ids:

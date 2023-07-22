@@ -16,7 +16,7 @@ DATABASE = os.getenv("DATABASE")
 CONNECTION_STRING = "sqlite:///nightsretrieval.db"
 
 
-def init_engine():
+def init_engine() -> create_engine:
     try:
         engine = create_engine(url=CONNECTION_STRING, echo=True)
         return engine

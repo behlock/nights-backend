@@ -1,10 +1,18 @@
+from datetime import datetime
+from typing import Any, Optional
 from nightsretrieval.graphql import send_graphql_request
+from utils.datetime_ex import datetime_to_str
 
 
 RA_API_URL = "https://ra.co/graphql"
 
-#* Hardcoded to London for now
-def get_event_listings(area_id: int = 13):
+
+# * Hardcoded to London for now
+def get_event_listings(
+    area_id: int = 13,
+    number_of_events: int = 20,
+    listing_date: Optional[str] = datetime_to_str(datetime.now()),
+) -> Any:
     query = """
         query GET_EVENT_LISTINGS(
         $filters: FilterInputDtoInput
@@ -82,18 +90,18 @@ def get_event_listings(area_id: int = 13):
         """
 
     variables = {
-        "filters": {"areas": {"eq": area_id}, "listingDate": {"gte": "2023-07-21T23:00:00.000Z"}},
+        "filters": {"areas": {"eq": area_id}, "listingDate": {"gte": listing_date}},
         "filterOptions": {"genre": True},
-        "pageSize": 20,
-        "page": 1,
+        # "pageSize": number_of_events,
+        # "page": 1,
     }
 
     payload = {"query": query, "variables": variables}
-    data = send_graphql_request(api_url=RA_API_URL , payload=payload)
+    data = send_graphql_request(api_url=RA_API_URL, payload=payload)
     return data
 
 
-def get_event(event_id):
+def get_event(event_id: int) -> Any:
     query = """
     query GET_EVENT($id: ID!, $isAuthenticated: Boolean!) {
   event(id: $id) {
@@ -257,5 +265,5 @@ def get_event(event_id):
     }
 
     payload = {"query": query, "variables": variables}
-    data = send_graphql_request(api_url=RA_API_URL , payload=payload)
+    data = send_graphql_request(api_url=RA_API_URL, payload=payload)
     return data
