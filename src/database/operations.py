@@ -57,17 +57,29 @@ def get_country_for_area(country_id: int) -> Country:
     )
     return country
 
-
+# TODO
 def get_area_for_venue(area_id: int) -> Area:
-    s = Session(init_engine())
-    db_area = s.query(Areas).filter(Areas.id == area_id).first()
-    area = Area(
-        area_id=db_area.id,
-        ra_id=db_area.ra_id,
-        name=db_area.name,
-        country=get_country_for_area(db_area.country_id),
+    # s = Session(init_engine())
+    # db_area = s.query(Areas).filter(Areas.id == area_id).first()
+    # area = Area(
+    #     area_id=db_area.id,
+    #     ra_id=db_area.ra_id,
+    #     name=db_area.name,
+    #     country=get_country_for_area(db_area.country_id),
+    # )
+    # return area
+
+    return Area(
+        area_id=1,
+        ra_id=13,
+        name="London",
+        country=Country(
+            country_id=1,
+            ra_id=3,
+            name="United Kingdom",
+            url_code="UK",
+        ),
     )
-    return area
 
 
 def get_venue_for_night(night_id: int) -> Optional[Venue]:
@@ -131,6 +143,12 @@ def get_artists_for_night(night_id: int) -> List[Artist]:
     return artists
 
 
+def get_night_id_from_ra_id(ra_id: int) -> int:
+    s = Session(init_engine())
+    db_night = s.query(Nights).filter(Nights.ra_id == ra_id).first()
+    return db_night.id
+
+
 def get_nights(area_ids: List[int]) -> List[Night]:
     # TODO: use area_ids
     s = Session(init_engine())
@@ -182,7 +200,7 @@ def insert_night_images_data(nights: List[Dict[str, Any]]) -> None:
         for image in night["images"]:
             objects.append(
                 NightImages(
-                    night_id=night["ra_id"],
+                    night_id=get_night_id_from_ra_id(night["ra_id"]),
                     image_url=image,
                 )
             )
@@ -196,7 +214,7 @@ def insert_venues_data(nights: List[Dict[str, Any]]) -> None:
         objects.append(
             Venues(
                 ra_id=night["venue"]["ra_id"],
-                night_id=night["ra_id"],
+                night_id=get_night_id_from_ra_id(night["ra_id"]),
                 name=night["venue"]["name"],
                 address=night["venue"]["address"],
                 area_id=night["venue"]["area"]["ra_id"],
@@ -213,7 +231,7 @@ def insert_promoters_data(nights: List[Dict[str, Any]]) -> None:
             objects.append(
                 Promoters(
                     ra_id=promoter["ra_id"],
-                    night_id=night["ra_id"],
+                    night_id=get_night_id_from_ra_id(night["ra_id"]),
                     name=promoter["name"],
                 )
             )
@@ -228,7 +246,7 @@ def insert_artists_data(nights: List[Dict[str, Any]]) -> None:
             objects.append(
                 Artists(
                     ra_id=artist["ra_id"],
-                    night_id=night["ra_id"],
+                    night_id=get_night_id_from_ra_id(night["ra_id"]),
                     name=artist["name"],
                 )
             )
@@ -242,7 +260,7 @@ def insert_tickets_data(nights: List[Dict[str, Any]]) -> None:
         for ticket in night["tickets"]:
             objects.append(
                 Tickets(
-                    night_id=night["ra_id"],
+                    night_id=get_night_id_from_ra_id(night["ra_id"]),
                     title=ticket["title"],
                     price=ticket["price"],
                     on_sale_from=ticket["on_sale_from"],
