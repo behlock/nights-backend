@@ -6,7 +6,6 @@ from database.model import (
     Nights,
     NightImages,
     Countries,
-    Areas,
     Venues,
     Tickets,
     Promoters,
@@ -56,6 +55,7 @@ def get_country_for_area(country_id: int) -> Country:
         url_code=db_country.url_code,
     )
     return country
+
 
 # TODO
 def get_area_for_venue(area_id: int) -> Area:
@@ -179,84 +179,73 @@ def create_tables() -> None:
 
 
 def insert_nights_data(nights: List[Dict[str, Any]]) -> None:
-    objects = [
-        Nights(
-            ra_id=night["ra_id"],
-            title=night["title"],
-            date=night["date"],
-            content=night["content"],
-            start_time=night["start_time"],
-            end_time=night["end_time"],
-        )
-        for night in nights
-    ]
+    insert_basic_nights_data(nights)
+    insert_additional_nights_data(nights)
+
+
+def insert_basic_nights_data(nights: List[Dict[str, Any]]) -> None:
+    s = Session(init_engine())
+    objects = []
+    for night in nights:
+        if s.query(Nights).filter(Nights.ra_id == night["ra_id"]).first() is None:
+            objects.append(
+                Nights(
+                    ra_id=night["ra_id"],
+                    title=night["title"],
+                    date=night["date"],
+                    content=night["content"],
+                    start_time=night["start_time"],
+                    end_time=night["end_time"],
+                )
+            )
 
     insert_data(objects)
 
 
-def insert_night_images_data(nights: List[Dict[str, Any]]) -> None:
+def insert_additional_nights_data(nights: List[Dict[str, Any]]) -> None:
+    s = Session(init_engine())
     objects = []
     for night in nights:
         for image in night["images"]:
+            if s.query(NightImages).filter(NightImages.image_url == image).first() is None:
+                objects.append(
+                    NightImages(
+                        night_id=get_night_id_from_ra_id(night["ra_id"]),
+                        image_url=image,
+                    )
+                )
+
+        if s.query(Venues).filter(Venues.ra_id == night["venue"]["ra_id"]).first() is None:
             objects.append(
-                NightImages(
+                Venues(
+                    ra_id=night["venue"]["ra_id"],
                     night_id=get_night_id_from_ra_id(night["ra_id"]),
-                    image_url=image,
+                    name=night["venue"]["name"],
+                    address=night["venue"]["address"],
+                    area_id=night["venue"]["area"]["ra_id"],
                 )
             )
 
-    insert_data(objects)
-
-
-def insert_venues_data(nights: List[Dict[str, Any]]) -> None:
-    objects = []
-    for night in nights:
-        objects.append(
-            Venues(
-                ra_id=night["venue"]["ra_id"],
-                night_id=get_night_id_from_ra_id(night["ra_id"]),
-                name=night["venue"]["name"],
-                address=night["venue"]["address"],
-                area_id=night["venue"]["area"]["ra_id"],
-            )
-        )
-
-    insert_data(objects)
-
-
-def insert_promoters_data(nights: List[Dict[str, Any]]) -> None:
-    objects = []
-    for night in nights:
         for promoter in night["promoters"]:
-            objects.append(
-                Promoters(
-                    ra_id=promoter["ra_id"],
-                    night_id=get_night_id_from_ra_id(night["ra_id"]),
-                    name=promoter["name"],
+            if s.query(Promoters).filter(Promoters.ra_id == promoter["ra_id"]).first() is None:
+                objects.append(
+                    Promoters(
+                        ra_id=promoter["ra_id"],
+                        night_id=get_night_id_from_ra_id(night["ra_id"]),
+                        name=promoter["name"],
+                    )
                 )
-            )
 
-    insert_data(objects)
-
-
-def insert_artists_data(nights: List[Dict[str, Any]]) -> None:
-    objects = []
-    for night in nights:
         for artist in night["artists"]:
-            objects.append(
-                Artists(
-                    ra_id=artist["ra_id"],
-                    night_id=get_night_id_from_ra_id(night["ra_id"]),
-                    name=artist["name"],
+            if s.query(Artists).filter(Artists.ra_id == artist["ra_id"]).first() is None:
+                objects.append(
+                    Artists(
+                        ra_id=artist["ra_id"],
+                        night_id=get_night_id_from_ra_id(night["ra_id"]),
+                        name=artist["name"],
+                    )
                 )
-            )
 
-    insert_data(objects)
-
-
-def insert_tickets_data(nights: List[Dict[str, Any]]) -> None:
-    objects = []
-    for night in nights:
         for ticket in night["tickets"]:
             objects.append(
                 Tickets(
@@ -268,17 +257,12 @@ def insert_tickets_data(nights: List[Dict[str, Any]]) -> None:
                 )
             )
 
-    insert_data(objects)
-
-
-def insert_genres_data(nights: List[Dict[str, Any]]) -> None:
-    objects = []
-    for night in nights:
         for genre in night["genres"]:
-            objects.append(
-                Genres(
-                    name=genre["name"],
+            if s.query(Genres).filter(Genres.name == genre["name"]).first() is None:
+                objects.append(
+                    Genres(
+                        name=genre["name"],
+                    )
                 )
-            )
 
     insert_data(objects)
