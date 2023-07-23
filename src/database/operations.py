@@ -13,6 +13,7 @@ from database.model import (
     Genres,
 )
 from database.connection import init_engine
+from nightsservice.api.graphql.inputs import NightsInput
 from nightsservice.api.graphql.schema import (
     Area,
     Country,
@@ -149,8 +150,8 @@ def get_night_id_from_ra_id(ra_id: int) -> int:
     return db_night.id
 
 
-def get_nights(area_ids: List[int]) -> List[Night]:
-    # TODO: use area_ids
+def get_nights(input: Optional[NightsInput]) -> List[Night]:
+    # TODO: use input
     s = Session(init_engine())
     db_nights = s.query(Nights).all()
     nights = []
@@ -171,6 +172,11 @@ def get_nights(area_ids: List[int]) -> List[Night]:
         )
         nights.append(night)
     return nights
+
+
+def drop_tables() -> None:
+    engine = init_engine()
+    Base.metadata.drop_all(engine)
 
 
 def create_tables() -> None:

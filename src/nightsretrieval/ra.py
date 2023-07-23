@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 from nightsretrieval.graphql import send_graphql_request
 from utils.datetime_ex import datetime_to_str
@@ -7,11 +7,10 @@ from utils.datetime_ex import datetime_to_str
 RA_API_URL = "https://ra.co/graphql"
 
 
-# * Hardcoded to London for now
 def get_event_listings(
     area_id: int = 13,
-    number_of_events: int = 20,
-    listing_date: Optional[str] = datetime_to_str(datetime.now()),
+    listing_date_lower_bound: Optional[str] = datetime.now(),
+    listing_date_upper_bound: Optional[str] = datetime.now() + timedelta(days=10),
 ) -> Any:
     query = """
         query GET_EVENT_LISTINGS(
@@ -90,9 +89,12 @@ def get_event_listings(
         """
 
     variables = {
-        "filters": {"areas": {"eq": area_id}, "listingDate": {"gte": listing_date}},
+        "filters": {
+            "areas": {"eq": area_id},
+            "listingDate": {"gt": datetime_to_str(listing_date_lower_bound), "lt": datetime_to_str(listing_date_upper_bound)},
+        },
         "filterOptions": {"genre": True},
-        # "pageSize": number_of_events,
+        "pageSize": 100,
         # "page": 1,
     }
 

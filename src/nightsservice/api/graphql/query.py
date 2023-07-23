@@ -27,5 +27,5 @@ class Query(ObjectType):  # type: ignore
     def resolve_nights(
         parent: Any, info: ResolveInfo, input: Optional[NightsInput] = None
     ) -> NightsResponse:
-        nights = get_nights(input.area_ids)  # type: ignore
+        nights = get_nights(input)  # type: ignore
         return NightsResponse(nights=nights, total_count=len(nights))
