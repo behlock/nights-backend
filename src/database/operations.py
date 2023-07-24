@@ -17,6 +17,7 @@ from nightsservice.api.graphql.inputs import NightsInput
 from nightsservice.api.graphql.schema import (
     Area,
     Country,
+    Genre,
     Night,
     NightImage,
     Venue,
@@ -143,6 +144,20 @@ def get_artists_for_night(night_id: int) -> List[Artist]:
         artists.append(artist)
     return artists
 
+def get_genres_for_night(night_id: int) -> List[Genre]:
+    s = Session(init_engine())
+    db_genres = s.query(Genres).filter(Genres.night_id == night_id).all()
+    genres = []
+    for db_genre in db_genres:
+        genre = Genre(
+            genre_id=db_genre.id,
+            ra_id=db_genre.ra_id,
+            name=db_genre.name,
+        )
+        genres.append(genre)
+    return genres
+
+
 
 def get_night_id_from_ra_id(ra_id: int) -> int:
     s = Session(init_engine())
@@ -169,6 +184,7 @@ def get_nights(input: Optional[NightsInput]) -> List[Night]:
             tickets=get_tickets_for_night(db_night.id),
             promoters=get_promoters_for_night(db_night.id),
             artists=get_artists_for_night(db_night.id),
+            genres=get_genres_for_night(db_night.id),
         )
         nights.append(night)
     return nights
@@ -267,6 +283,7 @@ def insert_additional_nights_data(nights: List[Dict[str, Any]]) -> None:
             if s.query(Genres).filter(Genres.name == genre["name"]).first() is None:
                 objects.append(
                     Genres(
+                        night_id=get_night_id_from_ra_id(night["ra_id"]),
                         name=genre["name"],
                     )
                 )

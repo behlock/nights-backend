@@ -90,6 +90,8 @@ class Genres(Base):  # type: ignore
     __tablename__ = "genres"
 
     id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
+    ra_id = sqla.Column(sqla.String, nullable=True, index=False)
     name = sqla.Column(sqla.String, nullable=False, index=False)
+    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=True, index=False)
     # TODO
     # artist_id = sqla.Column(sqla.Integer, ForeignKey("artists.id"), nullable=True, index=False)

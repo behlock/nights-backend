@@ -50,6 +50,12 @@ class Artist(ObjectType):  # type: ignore
     name = NonNull(String, description="Name of artist")
 
 
+class Genre(ObjectType):  # type: ignore
+    genre_id = NonNull(BigInt, description="Unique identifier for genre")
+    ra_id = NonNull(BigInt, description="Resident Advisor ID")
+    name = NonNull(String, description="Name of genre")
+
+
 class Night(ObjectType):  # type: ignore
     night_id = NonNull(BigInt, description="Unique identifier for night")
     ra_id = NonNull(BigInt, description="Resident Advisor ID")
@@ -64,3 +70,4 @@ class Night(ObjectType):  # type: ignore
     tickets = non_null_list_of(Ticket, description="Tickets of event")
     promoters = non_null_list_of(Promoter, description="Promoters of event")
     artists = non_null_list_of(Artist, description="Artists of event")
+    genres = non_null_list_of(Genre, description="Genres of event")
