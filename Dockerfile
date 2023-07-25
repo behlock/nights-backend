@@ -20,9 +20,6 @@ COPY pyproject.toml poetry.lock /app/
 # Install the project dependencies
 RUN poetry install --no-root --no-dev
 
-# Copy the entire project code into the container
-COPY . /app
-
 ENV PYTHONPATH=/app/src:/app/.venv/lib/python3.10/site-packages
 
 EXPOSE 5002
