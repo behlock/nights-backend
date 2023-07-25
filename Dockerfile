@@ -1,31 +1,31 @@
-FROM python:3.10-slim as base
+FROM python:3.10
 
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONUNBUFFERED=1
-
+# Set the working directory inside the container
 WORKDIR /app
 
-FROM base as builder
+# COPY poetry.lock poetry.lock
+COPY pyproject.toml pyproject.toml
 
-ENV PIP_DEFAULT_TIMEOUT=100 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    POETRY_VERSION=1.3.1
+# Install system dependencies required for Poetry
+RUN apt-get update && \
+    apt-get install -y curl && \
+    apt-get clean
 
-RUN pip install "poetry==$POETRY_VERSION"
+# Install Poetry using pip (you can also use the official install script if preferred)
+RUN pip install poetry
 
-COPY pyproject.toml poetry.lock README.md ./
+# Copy only the requirements and poetry.lock files to leverage Docker cache
+COPY pyproject.toml poetry.lock /app/
 
-RUN poetry config virtualenvs.in-project true && \
-    poetry install --only=main --no-root && \
-    poetry build
+# Install the project dependencies
+RUN poetry install --no-root --no-dev
 
-FROM base as final
+# Copy the entire project code into the container
+COPY . /app
 
-COPY --from=builder /app/.venv ./.venv
-COPY --from=builder /app/dist .
-COPY docker-entrypoint.sh .
+ENV PYTHONPATH=/app/src:/app/.venv/lib/python3.10/site-packages
 
-RUN ./.venv/bin/pip install *.whl
-CMD ["./docker-entrypoint.sh"]
+EXPOSE 5002
+
+# Set the entrypoint command
+ENTRYPOINT ["python", "-m", "nightsservice"]

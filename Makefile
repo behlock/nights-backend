@@ -2,8 +2,11 @@
 		lint \
 		test \
 
+install:
+	poetry install
+
 run:
-	poetry run python main.py ${FILE}
+	poetry run python -m nightsservice
 
 lint:
 	bin/run-black.sh && \

@@ -1,20 +1,22 @@
 [tool.poetry]
-name = "nights-retrieval"
-version = "1"
+name = "nights-service"
+version = "0.1.0"
 description = "A GraphQL service to store nights data"
 authors = ["behlock"]
+
+packages = [
+    { include = "nightsservice", from="src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.10.0"
 graphene = "^3.2.2"
 typer = "^0.9.0"
-logging = "^0.4.9.6"
 graphql-utilities = "^0.4.0"
 uvicorn = "^0.23.1"
 structlog = "^23.1.0"
 fastapi = "^0.100.0"
 sqlalchemy = "1.4.49"
-psycopg2 = "^2.9.6"
 python-dotenv = "^1.0.0"
 pymysql = "^1.1.0"
 mysql-connector-python = "^8.1.0"
