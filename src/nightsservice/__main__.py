@@ -17,7 +17,7 @@ def main(
     """Entry-point to service
     :param port The port to run on
     """
-    logger.info(f"Starting service on port {port}")
+    logger.warning(f"Starting service on port {port}")
 
     uvicorn.run(
         "nightsservice.__main__:app",
