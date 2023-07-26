@@ -12,12 +12,12 @@ logger = getLogger(__name__)
 
 
 def main(
-    port: int = PORT,
+    port: int,
 ) -> None:
     """Entry-point to service
     :param port The port to run on
     """
-    logger.warning("Starting service")
+    logger.info(f"Starting service on port {port}")
 
     uvicorn.run(
         "nightsservice.__main__:app",
@@ -28,6 +28,6 @@ def main(
 
 
 if __name__ == "__main__":
-    main(port=os.environ.get("PORT"))
+    main(port=os.environ.get("PORT") or PORT)
 else:
     app = init_app()
