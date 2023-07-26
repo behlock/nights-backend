@@ -39,8 +39,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # ENV PYTHONPATH=/app/src:/app/.venv/lib/python3.10/site-packages
 ENV PYTHONPATH=/app/src:/root/.cache/pypoetry/virtualenvs/nights-service-9TtSrW0h-py3.10/lib/python3.10/site-packages/
 
-
-EXPOSE 5002
+EXPOSE 8000
 
 # Set the entrypoint command
 ENTRYPOINT ["python3", "-m", "nightsservice"]
