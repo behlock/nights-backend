@@ -13,7 +13,7 @@ PORT = os.getenv("PORT")
 DATABASE = os.getenv("DATABASE")
 
 # CONNECTION_STRING = f"mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-CONNECTION_STRING = "sqlite:///nightsretrieval.db"
+CONNECTION_STRING = "sqlite:///src/database/nightsretrieval.db"
 
 
 def init_engine() -> create_engine:
