@@ -1,10 +1,13 @@
+import dotenv
 from logging import WARNING, getLogger
+import os
 
 import uvicorn
 
 from nightsservice.application import init_app
 from nightsservice.config import PORT
 
+dotenv.load_dotenv()
 logger = getLogger(__name__)
 
 
@@ -25,6 +28,6 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    main(port=os.environ.get("PORT"))
 else:
     app = init_app()
