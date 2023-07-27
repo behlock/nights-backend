@@ -12,7 +12,6 @@ from nightsservice.api.graphql.types import non_null_list_of
 
 class NightsResponse(ObjectType):  # type: ignore
     nights = non_null_list_of(Night, description="List of nights")
-    total_count = NonNull(BigInt, description="Total number of nights")
 
 
 class Query(ObjectType):  # type: ignore
@@ -28,4 +27,4 @@ class Query(ObjectType):  # type: ignore
         parent: Any, info: ResolveInfo, input: Optional[NightsInput] = None
     ) -> NightsResponse:
         nights = get_nights(input)  # type: ignore
-        return NightsResponse(nights=nights, total_count=len(nights))
+        return NightsResponse(nights=nights)
