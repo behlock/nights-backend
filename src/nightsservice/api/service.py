@@ -30,6 +30,7 @@ def get_app(
             "http://localhost",
             "http://localhost:3000",
             "https://www.onepointfive.dev",
+            "www.onepointfive.dev"
         ],
         allow_methods=["POST", "GET"],
         allow_headers=["authorization", "content-type"],
