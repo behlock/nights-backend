@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from utils.datetime_ex import str_to_datetime
+from nightsretrieval.utils.datetime_ex import str_to_datetime
 
 
 def nights_ids_from_json(nights_json: Optional[Dict[str, Any]]) -> List[int]:
