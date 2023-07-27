@@ -5,10 +5,10 @@
 install:
 	poetry install
 
-run:
+run-service:
 	poetry run python -m nightsservice
 
-retrieve:
+retrieve-nights:
 	poetry run python -m nightsretrieval
 
 lint:

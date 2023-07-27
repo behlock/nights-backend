@@ -26,9 +26,13 @@ def get_app(
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=[
+            "http://localhost",
+            "http://localhost:3000",
+            "https://www.onepointfive.dev",
+        ],
+        allow_methods=["POST", "GET"],
+        allow_headers=["authorization", "content-type"],
     )
 
     return app
