@@ -34,7 +34,8 @@ def get_app(
         # ],
         allow_origins=["*"],
         allow_methods=["POST", "GET"],
-        allow_headers=["authorization", "content-type"],
+        # allow_headers=["authorization", "content-type"],
+        allow_headers=["*"],
     )
 
     return app
