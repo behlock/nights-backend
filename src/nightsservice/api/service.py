@@ -32,9 +32,10 @@ def get_app(
         #     "https://www.onepointfive.dev",
         #     "www.onepointfive.dev"
         # ],
-        allow_origins=["*"],
-        allow_methods=["POST", "GET"],
+        # allow_methods=["POST", "GET"],
         # allow_headers=["authorization", "content-type"],
+        allow_origins=["*"],
+        allow_methods=["*"],
         allow_headers=["*"],
     )
 
