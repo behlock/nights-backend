@@ -28,6 +28,7 @@ def main(
 
 
 if __name__ == "__main__":
-    main(port=os.environ.get("PORT") or PORT)
+    port = os.environ.get("PORT") or PORT
+    main(port=int(port))
 else:
     app = init_app()

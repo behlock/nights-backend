@@ -1,7 +1,7 @@
 from typing import Any, Optional
 import graphene
 
-from graphene import NonNull, ObjectType, ResolveInfo, BigInt
+from graphene import ObjectType, ResolveInfo
 from database.operations import get_nights
 
 from nightsservice.api.graphql.inputs import NightsInput

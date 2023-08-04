@@ -52,7 +52,6 @@ def full_event_from_json(night_json: Dict[str, Any]) -> Dict[str, Any]:
             for ticket in night_json["tickets"]
         ],
         "genres": [
-            {"ra_id": int(genre["id"]), "name": genre["name"]}
-            for genre in night_json["genres"]
+            {"ra_id": int(genre["id"]), "name": genre["name"]} for genre in night_json["genres"]
         ],
     }

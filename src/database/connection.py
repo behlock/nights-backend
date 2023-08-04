@@ -6,19 +6,22 @@ from sqlalchemy import create_engine
 load_dotenv()
 
 # DATABASE CREDENTIALS
-USER = os.getenv("USERNAME")
-PASSWORD = os.getenv("PASSWORD")
-HOST = os.getenv("HOST")
-PORT = os.getenv("PORT")
-DATABASE = os.getenv("DATABASE")
+conf = {
+    "host": os.getenv("HOST"),
+    "user": os.getenv("USERNAME"),
+    "password": os.getenv("PASSWORD"),
+    "database": os.getenv("DATABASE"),
+    "port": os.getenv("PORT"),
+}
 
-# CONNECTION_STRING = f"mysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-CONNECTION_STRING = "sqlite:///src/database/nightsretrieval.db"
+CONNECTION_STRING_PSQL = "postgresql://{user}:{password}@{host}:{port}/{database}".format(**conf)
+CONNECTION_STRING_SQLITE = "sqlite:///src/database/nightsretrieval.db"
 
 
-def init_engine() -> create_engine:
+def init_engine(is_local: bool) -> create_engine:
+    connection_string = CONNECTION_STRING_PSQL if is_local else CONNECTION_STRING_SQLITE
     try:
-        engine = create_engine(url=CONNECTION_STRING, echo=True)
+        engine = create_engine(url=connection_string, echo=True)
         return engine
 
     except Exception as ex:
