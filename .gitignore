@@ -13,6 +13,9 @@ __pycache__/
 # SQLITE
 src/database/nightsretrieval.db
 
+# PEM
+*.pem
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
