@@ -1,7 +1,8 @@
 from typing import Any, Optional
 import graphene
-
 from graphene import ObjectType, ResolveInfo
+
+from database.connection import init_engine
 from database.operations import get_nights
 
 from nightsservice.api.graphql.inputs import NightsInput
@@ -26,5 +27,6 @@ class Query(ObjectType):  # type: ignore
     def resolve_nights(
         parent: Any, info: ResolveInfo, input: Optional[NightsInput] = None
     ) -> NightsResponse:
-        nights = get_nights(input)  # type: ignore
+        engine = init_engine(is_local=False)
+        nights = get_nights(engine=engine, input=input)  # type: ignore
         return NightsResponse(nights=nights)
