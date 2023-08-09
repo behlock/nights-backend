@@ -35,17 +35,25 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.5.1
-      with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    - name: Create SSH key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "$SSH_PRIVATE_KEY" > ../private.key
+        sudo chmod 600 ../private.key
+        echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+        shell: bash
+      env:
+        SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+        SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
+        SSH_KEY_PATH: ${{ github.workspace }}/../private.key
+
 
     - name: Run docker container
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nights-service
       run: |
-        ssh -o StrictHostKeyChecking=no -i $SSH_AUTH_SOCK -l ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && ./stop-docker-container-on-port.sh &&  docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        ssh -i $SSH_KEY_PATH ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && ./stop-docker-container-on-port.sh &&  docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
 
 permissions:
