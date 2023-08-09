@@ -38,14 +38,14 @@ jobs:
     - name: Set up SSH
       uses: webfactory/ssh-agent@v0.5.1
       with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
     - name: Run docker container
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nights-service
       run: |
-        ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && ./stop-docker-container-on-port.sh &&  docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
 
 permissions:
