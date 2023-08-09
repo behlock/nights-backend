@@ -45,7 +45,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nights-service
       run: |
-        ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USERNAME_AND_IP }} "docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        ssh -o StrictHostKeyChecking=no -l ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 437929416569.dkr.ecr.eu-west-2.amazonaws.com && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
 
 permissions:
