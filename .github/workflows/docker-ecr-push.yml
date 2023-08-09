@@ -36,6 +36,7 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
     - name: Create SSH key
+      id: ssh-key
       run: |
         mkdir -p ~/.ssh/
         echo "$SSH_PRIVATE_KEY" > ../private.key
@@ -45,13 +46,12 @@ jobs:
       env:
         SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
         SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
-        SSH_KEY_PATH: ${{ github.workspace }}/../private.key
-
 
     - name: Run docker container
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nights-service
+        SSH_KEY_PATH: ${{ github.workspace }}/../private.key
       run: |
         ssh -i $SSH_KEY_PATH ${{ secrets.SSH_USERNAME_AND_IP }} "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && ./stop-docker-container-on-port.sh &&  docker run -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
