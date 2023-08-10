@@ -7,11 +7,11 @@ load_dotenv()
 
 # DATABASE CREDENTIALS
 conf = {
-    "host": os.getenv("HOST"),
-    "user": os.getenv("USERNAME"),
-    "password": os.getenv("PASSWORD"),
-    "database": os.getenv("DATABASE"),
-    "port": os.getenv("PORT"),
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USERNAME"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_DATABASE_NAME"),
+    "port": os.getenv("DB_PORT"),
 }
 
 CONNECTION_STRING_PSQL = "postgresql://{user}:{password}@{host}:{port}/{database}".format(**conf)
