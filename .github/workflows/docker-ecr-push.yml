@@ -58,9 +58,9 @@ jobs:
         AWS --password-stdin $ECR_REGISTRY && \
         docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && \
         ./stop-docker-container-on-port.sh && \
-        docker run -e DB_HOST=${{ secrets.DB_HOST }} DB_USERNAME=${{ secrets.DB_USERNAME }} \
-        DB_PASSWORD=${{ secrets.DB_PASSWORD }} DB_DATABASE_NAME=${{ secrets.DB_DATABASE_NAME }} \
-        DB_PORT=${{ secrets.DB_PORT }} -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+        docker run -e DB_HOST=${{ secrets.DB_HOST }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
+        -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_DATABASE_NAME=${{ secrets.DB_DATABASE_NAME }} \
+        -e DB_PORT=${{ secrets.DB_PORT }} -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
 permissions:
   id-token: write
