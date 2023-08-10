@@ -51,7 +51,7 @@ class Venues(Base):  # type: ignore
     night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
     name = sqla.Column(sqla.String, nullable=False, index=False)
     address = sqla.Column(sqla.String, nullable=True, index=False)
-    area_id = sqla.Column(sqla.Integer, ForeignKey("areas.id"), nullable=False, index=False)
+    # area_id = sqla.Column(sqla.Integer, ForeignKey("areas.id"), nullable=False, index=False)
     # website_url = sqla.Column(sqla.String, nullable=False, index=False)
 
 

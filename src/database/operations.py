@@ -59,16 +59,6 @@ def get_country_for_area(session: Session, country_id: int) -> Country:
 
 # TODO
 def get_area_for_venue(session: Session, area_id: int) -> Area:
-    # s = Session(init_engine())
-    # db_area = session.query(Areas).filter(Areas.id == area_id).first()
-    # area = Area(
-    #     area_id=db_area.id,
-    #     ra_id=db_area.ra_id,
-    #     name=db_area.name,
-    #     country=get_country_for_area(db_area.country_id),
-    # )
-    # return area
-
     return Area(
         area_id=1,
         ra_id=13,
@@ -93,7 +83,7 @@ def get_venue_for_night(session: Session, night_id: int) -> Optional[Venue]:
         ra_id=db_venue.ra_id,
         name=db_venue.name,
         address=db_venue.address,
-        area=get_area_for_venue(session, db_venue.area_id),
+        # area=get_area_for_venue(session, db_venue.area_id),
     )
     return venue
 
@@ -234,20 +224,20 @@ def insert_additional_nights_data(session: Session, nights: List[Dict[str, Any]]
                     )
                 )
 
-        if session.query(Venues).filter(Venues.ra_id == night["venue"]["ra_id"]).first() is None:
+        if session.query(Venues).filter(Venues.ra_id == str(night["venue"]["ra_id"])).first() is None:
             objects.append(
                 Venues(
                     ra_id=night["venue"]["ra_id"],
                     night_id=get_night_id_from_ra_id(session, night["ra_id"]),
                     name=night["venue"]["name"],
                     address=night["venue"]["address"],
-                    area_id=night["venue"]["area"]["ra_id"],
+                    # area_id=night["venue"]["area"]["ra_id"],
                 )
             )
 
         for promoter in night["promoters"]:
             if (
-                session.query(Promoters).filter(Promoters.ra_id == promoter["ra_id"]).first()
+                session.query(Promoters).filter(Promoters.ra_id == str(promoter["ra_id"])).first()
                 is None
             ):
                 objects.append(
@@ -259,7 +249,7 @@ def insert_additional_nights_data(session: Session, nights: List[Dict[str, Any]]
                 )
 
         for artist in night["artists"]:
-            if session.query(Artists).filter(Artists.ra_id == artist["ra_id"]).first() is None:
+            if session.query(Artists).filter(Artists.ra_id == str(artist["ra_id"])).first() is None:
                 objects.append(
                     Artists(
                         ra_id=artist["ra_id"],
