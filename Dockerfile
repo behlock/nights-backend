@@ -15,5 +15,4 @@ ENV PYTHONPATH=/app/src:/root/.cache/pypoetry/virtualenvs/nights-service-9TtSrW0
 
 EXPOSE 5002
 
-ENTRYPOINT DB_HOST=$DB_HOST DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD \
-  DB_DATABASE_NAME=$DB_DATABASE_NAME DB_PORT=$DB_PORT python3 -m nightsservice
+ENTRYPOINT python3 -m nightsservice
