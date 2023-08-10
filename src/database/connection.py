@@ -19,7 +19,7 @@ CONNECTION_STRING_SQLITE = "sqlite:///src/database/nightsretrieval.db"
 
 
 def init_engine(is_local: bool) -> create_engine:
-    connection_string = CONNECTION_STRING_PSQL if is_local else CONNECTION_STRING_SQLITE
+    connection_string = CONNECTION_STRING_SQLITE if is_local else CONNECTION_STRING_PSQL
     try:
         engine = create_engine(url=connection_string, echo=True)
         return engine
