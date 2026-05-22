@@ -1,6 +1,4 @@
-.PHONY: run \
-		lint \
-		test \
+.PHONY: install run-service retrieve-nights-local retrieve-nights-prod retrieve-nights lint format typecheck test
 
 install:
 	poetry install
@@ -9,18 +7,22 @@ run-service:
 	poetry run python -m nightsservice
 
 retrieve-nights-local:
-	IS_LOCAL=true make retrieve-nights
+	poetry run python -m nightsretrieval --local
 
 retrieve-nights-prod:
-	IS_LOCAL=false make retrieve-nights
+	poetry run python -m nightsretrieval --prod
 
-retrieve-nights:
-	poetry run python -m nightsretrieval
+retrieve-nights: retrieve-nights-local
 
 lint:
-	bin/run-black.sh && \
-	bin/run-flake8.sh && \
-	bin/run-mypy.sh
+	poetry run ruff check src tests
+
+format:
+	poetry run ruff format src tests
+	poetry run ruff check --fix src tests
+
+typecheck:
+	poetry run mypy src
 
 test:
 	poetry run pytest tests

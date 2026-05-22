@@ -1,4 +1,4 @@
-from graphene import ObjectType, String, NonNull, BigInt, DateTime, Field
+from graphene import BigInt, DateTime, Field, NonNull, ObjectType, String
 
 from nightsservice.api.graphql.types import non_null_list_of
 

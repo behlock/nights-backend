@@ -8,60 +8,82 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        role-to-assume: arn:aws:iam::437929416569:role/GithubActions
-        aws-region: eu-west-2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
 
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push image to Amazon ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nights-service
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nights-service
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+          docker tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
-    - name: Create SSH key
-      id: ssh-key
-      run: |
-        mkdir -p ~/.ssh/
-        echo "$SSH_PRIVATE_KEY" > ../private.key
-        sudo chmod 600 ../private.key
-        echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-      shell: bash
-      env:
-        SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
-        SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
+      - name: Set up SSH key + known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          DEPLOYMENT_HOST: ${{ secrets.DEPLOYMENT_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          if [ -n "$SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$DEPLOYMENT_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
 
-    - name: Run docker container
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nights-service
-        SSH_KEY_PATH: ${{ github.workspace }}/../private.key
-      run: |
-        ssh -o StrictHostKeyChecking=no -i $SSH_KEY_PATH ${{ secrets.SSH_USERNAME_AND_IP }} \
-        "aws ecr get-login-password --region eu-west-2 | docker login --username \
-        AWS --password-stdin $ECR_REGISTRY && \
-        docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest && \
-        ./stop-docker-container-on-port.sh && \
-        docker run -e DB_HOST=${{ secrets.DB_HOST }} -e DB_USERNAME=${{ secrets.DB_USERNAME }} \
-        -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_DATABASE_NAME=${{ secrets.DB_DATABASE_NAME }} \
-        -e DB_PORT=${{ secrets.DB_PORT }} -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+      - name: Deploy container on remote host
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nights-service
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_DATABASE_NAME: ${{ secrets.DB_DATABASE_NAME }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          TRUSTED_HOSTS: ${{ secrets.TRUSTED_HOSTS }}
+        run: |
+          REMOTE_ENV=$(mktemp)
+          cat > "$REMOTE_ENV" <<EOF
+          DB_HOST=$DB_HOST
+          DB_USERNAME=$DB_USERNAME
+          DB_PASSWORD=$DB_PASSWORD
+          DB_DATABASE_NAME=$DB_DATABASE_NAME
+          DB_PORT=$DB_PORT
+          CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS
+          TRUSTED_HOSTS=$TRUSTED_HOSTS
+          ENVIRONMENT=production
+          EOF
 
-permissions:
-  id-token: write
-  contents: read
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "$REMOTE_ENV" "${{ secrets.SSH_USERNAME_AND_IP }}:/tmp/nights-service.env"
+          rm -f "$REMOTE_ENV"
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USERNAME_AND_IP }}" \
+            "aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $ECR_REGISTRY \
+              && docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+              && ./stop-docker-container-on-port.sh \
+              && docker run --env-file /tmp/nights-service.env -d -p 5002:5002 $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+              && rm -f /tmp/nights-service.env"

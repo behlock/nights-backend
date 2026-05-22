@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Any
+
 from nightsretrieval.graphql import send_graphql_request
 from nightsretrieval.utils.datetime_ex import datetime_to_str
-
 
 RA_API_URL = "https://ra.co/graphql"
 

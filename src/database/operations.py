@@ -1,203 +1,189 @@
-from typing import List, Dict, Any, Optional
+"""Database operations using SQLAlchemy 2.0 ``select()`` API.
 
-from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
+``get_nights`` previously executed N+1 queries (one per related table per night)
+and ignored every filter on its input. It now eager-loads relationships via
+``selectinload`` and applies the GraphQL input filters.
+"""
 
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+
+import structlog
+from sqlalchemy import Engine, select
+from sqlalchemy.orm import Session, selectinload
+
+from database.connection import session_scope
 from database.model import (
-    Base,
-    Nights,
-    NightImages,
-    Countries,
-    Venues,
-    Tickets,
-    Promoters,
     Artists,
+    Countries,
     Genres,
+    NightImages,
+    Nights,
+    Promoters,
+    Tickets,
+    Venues,
 )
 from nightsservice.api.graphql.inputs import NightsInput
 from nightsservice.api.graphql.schema import (
-    Area,
+    Artist,
     Country,
     Genre,
     Night,
     NightImage,
-    Venue,
-    Ticket,
     Promoter,
-    Artist,
+    Ticket,
+    Venue,
 )
 
-
-def insert_data(session: Session, objects: List[Any]) -> None:
-    session.bulk_save_objects(objects)
-    session.commit()
+logger = structlog.get_logger(__name__)
 
 
-# TODO: Make db agnostic to the data it receives
-def get_images_for_night(session: Session, night_id: int) -> List[NightImage]:
-    db_images = session.query(NightImages).filter(NightImages.night_id == night_id).all()
-    images = []
-    for db_image in db_images:
-        image = NightImage(
-            night_image_id=db_image.id,
-            url=db_image.image_url,
-        )
-        images.append(image)
-    return images
-
-
-def get_country_for_area(session: Session, country_id: int) -> Country:
-    db_country = session.query(Countries).filter(Countries.id == country_id).first()
-    country = Country(
+def _country_to_dto(db_country: Countries) -> Country:
+    return Country(
         country_id=db_country.id,
         ra_id=db_country.ra_id,
         name=db_country.name,
         url_code=db_country.url_code,
     )
-    return country
 
 
-# TODO
-def get_area_for_venue(session: Session, area_id: int) -> Area:
-    return Area(
-        area_id=1,
-        ra_id=13,
-        name="London",
-        country=Country(
-            country_id=1,
-            ra_id=3,
-            name="United Kingdom",
-            url_code="UK",
-        ),
-    )
-
-
-def get_venue_for_night(session: Session, night_id: int) -> Optional[Venue]:
-    db_venue = session.query(Venues).filter(Venues.night_id == night_id).first()
-
-    if db_venue is None:
-        return None
-
-    venue = Venue(
+def _venue_to_dto(db_venue: Venues) -> Venue:
+    return Venue(
         venue_id=db_venue.id,
         ra_id=db_venue.ra_id,
         name=db_venue.name,
         address=db_venue.address,
-        # area=get_area_for_venue(session, db_venue.area_id),
     )
-    return venue
 
 
-def get_tickets_for_night(session: Session, night_id: int) -> List[Ticket]:
-    db_tickets = session.query(Tickets).filter(Tickets.night_id == night_id).all()
-    tickets = []
-    for db_ticket in db_tickets:
-        ticket = Ticket(
-            ticket_id=db_ticket.id,
-            title=db_ticket.title,
-            price=db_ticket.price,
-            on_sale_from=db_ticket.on_sale_from,
-            valid_type=db_ticket.valid_type,
+def _image_to_dto(db_image: NightImages) -> NightImage:
+    return NightImage(night_image_id=db_image.id, url=db_image.image_url)
+
+
+def _ticket_to_dto(db_ticket: Tickets) -> Ticket:
+    return Ticket(
+        ticket_id=db_ticket.id,
+        title=db_ticket.title,
+        price=db_ticket.price,
+        on_sale_from=db_ticket.on_sale_from,
+        valid_type=db_ticket.valid_type,
+    )
+
+
+def _promoter_to_dto(db_promoter: Promoters) -> Promoter:
+    return Promoter(
+        promoter_id=db_promoter.id,
+        ra_id=db_promoter.ra_id,
+        name=db_promoter.name,
+    )
+
+
+def _artist_to_dto(db_artist: Artists) -> Artist:
+    return Artist(artist_id=db_artist.id, ra_id=db_artist.ra_id, name=db_artist.name)
+
+
+def _genre_to_dto(db_genre: Genres) -> Genre:
+    return Genre(genre_id=db_genre.id, ra_id=db_genre.ra_id or "", name=db_genre.name)
+
+
+def _night_to_dto(db_night: Nights) -> Night:
+    return Night(
+        night_id=db_night.id,
+        ra_id=db_night.ra_id,
+        title=db_night.title,
+        date=db_night.date,
+        content=db_night.content,
+        start_time=db_night.start_time,
+        end_time=db_night.end_time,
+        images=[_image_to_dto(i) for i in db_night.images],
+        venue=_venue_to_dto(db_night.venue) if db_night.venue else None,
+        tickets=[_ticket_to_dto(t) for t in db_night.tickets],
+        promoters=[_promoter_to_dto(p) for p in db_night.promoters],
+        artists=[_artist_to_dto(a) for a in db_night.artists],
+        genres=[_genre_to_dto(g) for g in db_night.genres],
+    )
+
+
+def get_nights(engine: Engine, input: NightsInput | None) -> list[Night]:
+    """Fetch nights with eager-loaded relationships and optional input filters."""
+    with session_scope(engine) as session:
+        stmt = select(Nights).options(
+            selectinload(Nights.images),
+            selectinload(Nights.venue),
+            selectinload(Nights.tickets),
+            selectinload(Nights.promoters),
+            selectinload(Nights.artists),
+            selectinload(Nights.genres),
         )
-        tickets.append(ticket)
-    return tickets
+
+        if input is not None:
+            stmt = _apply_nights_filters(stmt, input)
+
+        # Hard cap to prevent unbounded queries from a public endpoint.
+        stmt = stmt.limit(500)
+
+        db_nights = session.scalars(stmt).all()
+        return [_night_to_dto(n) for n in db_nights]
 
 
-def get_promoters_for_night(session: Session, night_id: int) -> List[Promoter]:
-    db_promoters = session.query(Promoters).filter(Promoters.night_id == night_id).all()
-    promoters = []
-    for db_promoter in db_promoters:
-        promoter = Promoter(
-            promoter_id=db_promoter.id,
-            ra_id=db_promoter.ra_id,
-            name=db_promoter.name,
-        )
-        promoters.append(promoter)
-    return promoters
+def _apply_nights_filters(stmt: Any, input: NightsInput) -> Any:
+    lower = getattr(input, "listing_date_lower_bound", None)
+    upper = getattr(input, "listing_date_upper_bound", None)
+    if lower:
+        try:
+            stmt = stmt.where(Nights.date >= datetime.fromisoformat(lower))
+        except ValueError:
+            logger.warning("nights_filter_bad_lower_bound", value=lower)
+    if upper:
+        try:
+            stmt = stmt.where(Nights.date <= datetime.fromisoformat(upper))
+        except ValueError:
+            logger.warning("nights_filter_bad_upper_bound", value=upper)
+    return stmt
 
 
-def get_artists_for_night(session: Session, night_id: int) -> List[Artist]:
-    db_artists = session.query(Artists).filter(Artists.night_id == night_id).all()
-    artists = []
-    for db_artist in db_artists:
-        artist = Artist(
-            artist_id=db_artist.id,
-            ra_id=db_artist.ra_id,
-            name=db_artist.name,
-        )
-        artists.append(artist)
-    return artists
+# ---- Setup / write paths used by nightsretrieval ----
 
 
-def get_genres_for_night(session: Session, night_id: int) -> List[Genre]:
-    db_genres = session.query(Genres).filter(Genres.night_id == night_id).all()
-    genres = []
-    for db_genre in db_genres:
-        genre = Genre(
-            genre_id=db_genre.id,
-            ra_id=db_genre.ra_id,
-            name=db_genre.name,
-        )
-        genres.append(genre)
-    return genres
-
-
-def get_night_id_from_ra_id(session: Session, ra_id: int) -> int:
-    db_night = session.query(Nights).filter(Nights.ra_id == ra_id).first()
-    if db_night is None:
-        raise Exception(f"Night with ra_id {ra_id} does not exist")
-
-    return int(db_night.id)
-
-
-def get_nights(engine: create_engine, input: Optional[NightsInput]) -> List[Night]:
-    # TODO: use input
-    session = Session(engine)
-    db_nights = session.query(Nights).all()
-    nights = []
-    for db_night in db_nights:
-        night = Night(
-            night_id=db_night.id,
-            ra_id=db_night.ra_id,
-            title=db_night.title,
-            date=db_night.date,
-            content=db_night.content,
-            start_time=db_night.start_time,
-            end_time=db_night.end_time,
-            images=get_images_for_night(session, db_night.id),
-            venue=get_venue_for_night(session, db_night.id),
-            tickets=get_tickets_for_night(session, db_night.id),
-            promoters=get_promoters_for_night(session, db_night.id),
-            artists=get_artists_for_night(session, db_night.id),
-            genres=get_genres_for_night(session, db_night.id),
-        )
-        nights.append(night)
-    return nights
-
-
-def setup_tables(engine: create_engine) -> None:
+def setup_tables(engine: Engine) -> None:
     drop_tables(engine)
     create_tables(engine)
 
 
-def drop_tables(engine: create_engine) -> None:
+def drop_tables(engine: Engine) -> None:
+    from database.model import Base
+
     Base.metadata.drop_all(engine)
 
 
-def create_tables(engine: create_engine) -> None:
+def create_tables(engine: Engine) -> None:
+    from database.model import Base
+
     Base.metadata.create_all(engine)
 
 
-def insert_nights_data(engine: create_engine, nights: List[Dict[str, Any]]) -> None:
-    session = Session(engine)
-    insert_basic_nights_data(session, nights)
-    insert_additional_nights_data(session, nights)
+def get_night_id_from_ra_id(session: Session, ra_id: int) -> int:
+    stmt = select(Nights.id).where(Nights.ra_id == ra_id)
+    found = session.scalar(stmt)
+    if found is None:
+        raise ValueError(f"Night with ra_id {ra_id} does not exist")
+    return int(found)
 
 
-def insert_basic_nights_data(session: Session, nights: List[Dict[str, Any]]) -> None:
+def insert_nights_data(engine: Engine, nights: list[dict[str, Any]]) -> None:
+    with session_scope(engine) as session:
+        _insert_basic_nights_data(session, nights)
+        session.flush()
+        _insert_additional_nights_data(session, nights)
+
+
+def _insert_basic_nights_data(session: Session, nights: list[dict[str, Any]]) -> None:
     objects = []
     for night in nights:
-        if session.query(Nights).filter(Nights.ra_id == night["ra_id"]).first() is None:
+        existing = session.scalar(select(Nights).where(Nights.ra_id == night["ra_id"]))
+        if existing is None:
             objects.append(
                 Nights(
                     ra_id=night["ra_id"],
@@ -208,52 +194,60 @@ def insert_basic_nights_data(session: Session, nights: List[Dict[str, Any]]) -> 
                     end_time=night["end_time"],
                 )
             )
+    if objects:
+        session.add_all(objects)
 
-    insert_data(session, objects)
 
-
-def insert_additional_nights_data(session: Session, nights: List[Dict[str, Any]]) -> None:
-    objects = []
+def _insert_additional_nights_data(session: Session, nights: list[dict[str, Any]]) -> None:
+    objects: list[Any] = []
     for night in nights:
-        for image in night["images"]:
-            if session.query(NightImages).filter(NightImages.image_url == image).first() is None:
+        night_id = get_night_id_from_ra_id(session, night["ra_id"])
+
+        for image_url in night["images"]:
+            existing_image = session.scalar(
+                select(NightImages).where(NightImages.image_url == image_url)
+            )
+            if existing_image is None:
+                objects.append(NightImages(night_id=night_id, image_url=image_url))
+
+        venue_payload = night.get("venue") or {}
+        venue_ra_id = venue_payload.get("ra_id")
+        if venue_ra_id is not None:
+            existing_venue = session.scalar(
+                select(Venues).where(Venues.ra_id == str(venue_ra_id))
+            )
+            if existing_venue is None:
                 objects.append(
-                    NightImages(
-                        night_id=get_night_id_from_ra_id(session, night["ra_id"]),
-                        image_url=image,
+                    Venues(
+                        ra_id=str(venue_ra_id),
+                        night_id=night_id,
+                        name=venue_payload.get("name", ""),
+                        address=venue_payload.get("address"),
                     )
                 )
 
-        if session.query(Venues).filter(Venues.ra_id == str(night["venue"]["ra_id"])).first() is None:
-            objects.append(
-                Venues(
-                    ra_id=night["venue"]["ra_id"],
-                    night_id=get_night_id_from_ra_id(session, night["ra_id"]),
-                    name=night["venue"]["name"],
-                    address=night["venue"]["address"],
-                    # area_id=night["venue"]["area"]["ra_id"],
-                )
-            )
-
         for promoter in night["promoters"]:
-            if (
-                session.query(Promoters).filter(Promoters.ra_id == str(promoter["ra_id"])).first()
-                is None
-            ):
+            existing_promoter = session.scalar(
+                select(Promoters).where(Promoters.ra_id == str(promoter["ra_id"]))
+            )
+            if existing_promoter is None:
                 objects.append(
                     Promoters(
-                        ra_id=promoter["ra_id"],
-                        night_id=get_night_id_from_ra_id(session, night["ra_id"]),
+                        ra_id=str(promoter["ra_id"]),
+                        night_id=night_id,
                         name=promoter["name"],
                     )
                 )
 
         for artist in night["artists"]:
-            if session.query(Artists).filter(Artists.ra_id == str(artist["ra_id"])).first() is None:
+            existing_artist = session.scalar(
+                select(Artists).where(Artists.ra_id == str(artist["ra_id"]))
+            )
+            if existing_artist is None:
                 objects.append(
                     Artists(
-                        ra_id=artist["ra_id"],
-                        night_id=get_night_id_from_ra_id(session, night["ra_id"]),
+                        ra_id=str(artist["ra_id"]),
+                        night_id=night_id,
                         name=artist["name"],
                     )
                 )
@@ -261,7 +255,7 @@ def insert_additional_nights_data(session: Session, nights: List[Dict[str, Any]]
         for ticket in night["tickets"]:
             objects.append(
                 Tickets(
-                    night_id=get_night_id_from_ra_id(session, night["ra_id"]),
+                    night_id=night_id,
                     title=ticket["title"],
                     price=ticket["price"],
                     on_sale_from=ticket["on_sale_from"],
@@ -270,12 +264,15 @@ def insert_additional_nights_data(session: Session, nights: List[Dict[str, Any]]
             )
 
         for genre in night["genres"]:
-            if session.query(Genres).filter(Genres.name == genre["name"]).first() is None:
+            existing_genre = session.scalar(select(Genres).where(Genres.name == genre["name"]))
+            if existing_genre is None:
                 objects.append(
                     Genres(
-                        night_id=get_night_id_from_ra_id(session, night["ra_id"]),
+                        ra_id=str(genre["ra_id"]),
+                        night_id=night_id,
                         name=genre["name"],
                     )
                 )
 
-    insert_data(session, objects)
+    if objects:
+        session.add_all(objects)

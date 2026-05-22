@@ -56,3 +56,13 @@ report/
 
 # Package version written at build time
 src/calver-version.txt
+# env files
+.env
+.env.local
+.env.*.local
+
+# tool caches
+.ruff_cache/
+.mypy_cache/
+
+poetry.lock.pre-upgrade.bak

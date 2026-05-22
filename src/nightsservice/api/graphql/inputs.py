@@ -1,14 +1,22 @@
-from typing import Iterable
+from __future__ import annotations
 
-from graphene import Field, InputObjectType, String, BigInt
+from collections.abc import Iterable
+
+from graphene import BigInt, DateTime, Field, InputObjectType
 
 from nightsservice.api.graphql.types import list_of
 
 
-class NightsInput(InputObjectType):  # type: ignore
+class NightsInput(InputObjectType):  # type: ignore[misc]
     class Meta:
-        description = """The areas to restrict events fetching to"""
+        description = "Filter parameters for the nights query."
 
-    area_ids: Iterable[BigInt] = list_of(String, description="A list of area ids")
-    listing_date_lower_bound: String = Field(String, description="Listing start date")
-    listing_date_upper_bound: String = Field(String, description="Listing end date")
+    area_ids: Iterable[BigInt] = list_of(BigInt, description="Resident Advisor area IDs")
+    listing_date_lower_bound: DateTime = Field(
+        DateTime,
+        description="ISO 8601 lower bound (inclusive) for listing date.",
+    )
+    listing_date_upper_bound: DateTime = Field(
+        DateTime,
+        description="ISO 8601 upper bound (inclusive) for listing date.",
+    )
