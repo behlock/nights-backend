@@ -1,34 +1,29 @@
-import dotenv
-from logging import WARNING, getLogger
-import os
+from __future__ import annotations
 
+import dotenv
 import uvicorn
 
 from nightsservice.application import init_app
-from nightsservice.config import PORT
-
-dotenv.load_dotenv()
-logger = getLogger(__name__)
+from nightsservice.logging_config import configure_logging
+from nightsservice.settings import get_app_settings
 
 
-def main(
-    port: int,
-) -> None:
-    """Entry-point to service
-    :param port The port to run on
-    """
-    logger.warning(f"Starting service on port {port}")
+def main() -> None:
+    settings = get_app_settings()
+    configure_logging(level=settings.LOG_LEVEL, is_production=settings.is_production)
 
     uvicorn.run(
         "nightsservice.__main__:app",
-        host="0.0.0.0",
-        port=port,
-        log_level=WARNING,
+        host=settings.HOST,
+        port=settings.PORT,
+        log_level=settings.LOG_LEVEL.lower(),
+        access_log=False,
     )
 
 
+dotenv.load_dotenv()
+app = init_app()
+
+
 if __name__ == "__main__":
-    port = os.environ.get("PORT") or PORT
-    main(port=int(port))
-else:
-    app = init_app()
+    main()

@@ -1,28 +1,73 @@
-import os
+"""SQLAlchemy engine + session factory.
 
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
+The Postgres password is passed through ``URL.create`` so it is never interpolated
+into a string the way ``CONNECTION_STRING_PSQL`` used to do. ``echo`` is gated by
+``SQL_ECHO`` (default off) so we don't dump bound parameters to stdout in prod.
+"""
 
-load_dotenv()
+from __future__ import annotations
 
-# DATABASE CREDENTIALS
-conf = {
-    "host": os.getenv("DB_HOST"),
-    "user": os.getenv("DB_USERNAME"),
-    "password": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_DATABASE_NAME"),
-    "port": os.getenv("DB_PORT"),
-}
+from collections.abc import Generator
+from contextlib import contextmanager
 
-CONNECTION_STRING_PSQL = "postgresql://{user}:{password}@{host}:{port}/{database}".format(**conf)
-CONNECTION_STRING_SQLITE = "sqlite:///src/database/nightsretrieval.db"
+import structlog
+from sqlalchemy import URL, Engine, create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+from nightsservice.settings import get_app_settings, get_db_settings
+
+logger = structlog.get_logger(__name__)
 
 
-def init_engine(is_local: bool) -> create_engine:
-    connection_string = CONNECTION_STRING_SQLITE if is_local else CONNECTION_STRING_PSQL
+def _build_url(is_local: bool) -> URL | str:
+    if is_local:
+        return "sqlite:///src/database/nightsretrieval.db"
+
+    db = get_db_settings()
+    return URL.create(
+        drivername="postgresql+psycopg",
+        username=db.DB_USERNAME,
+        password=db.DB_PASSWORD,
+        host=db.DB_HOST,
+        port=db.DB_PORT,
+        database=db.DB_DATABASE_NAME,
+    )
+
+
+def init_engine(is_local: bool = False) -> Engine:
+    settings = get_app_settings()
+    url = _build_url(is_local)
     try:
-        engine = create_engine(url=connection_string, echo=True)
-        return engine
+        return create_engine(url, echo=settings.SQL_ECHO, pool_pre_ping=True, future=True)
+    except Exception:
+        logger.exception("database_engine_init_failed")
+        raise
 
-    except Exception as ex:
-        print("Connection could not be made due to the following error: \n", ex)
+
+_session_factory: sessionmaker[Session] | None = None
+
+
+def get_session_factory(engine: Engine | None = None) -> sessionmaker[Session]:
+    global _session_factory
+    if _session_factory is None:
+        _session_factory = sessionmaker(
+            bind=engine or init_engine(),
+            expire_on_commit=False,
+            future=True,
+        )
+    return _session_factory
+
+
+@contextmanager
+def session_scope(engine: Engine | None = None) -> Generator[Session]:
+    """Provide a transactional scope around a series of operations."""
+    factory = get_session_factory(engine)
+    session = factory()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

@@ -1,97 +1,134 @@
-import sqlalchemy as sqla
+"""SQLAlchemy 2.0 declarative models.
+
+All models use the new ``Mapped[...]`` / ``mapped_column`` API so types are
+checked at the declaration site and the legacy ``Query`` API is no longer the
+default.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+
 from sqlalchemy import ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-class Nights(Base):  # type: ignore
+class Base(DeclarativeBase):
+    pass
+
+
+class Nights(Base):
     __tablename__ = "nights"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.Integer, nullable=False, index=False)
-    title = sqla.Column(sqla.String, nullable=False, index=False)
-    date = sqla.Column(sqla.DateTime, nullable=False, index=False)
-    content = sqla.Column(sqla.String, nullable=True, index=False)
-    start_time = sqla.Column(sqla.DateTime, nullable=False, index=False)
-    end_time = sqla.Column(sqla.DateTime, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[int] = mapped_column(nullable=False)
+    title: Mapped[str] = mapped_column(nullable=False)
+    date: Mapped[datetime] = mapped_column(nullable=False)
+    content: Mapped[str | None] = mapped_column(nullable=True)
+    start_time: Mapped[datetime] = mapped_column(nullable=False)
+    end_time: Mapped[datetime] = mapped_column(nullable=False)
+
+    images: Mapped[list[NightImages]] = relationship(
+        back_populates="night", cascade="all, delete-orphan"
+    )
+    venue: Mapped[Venues | None] = relationship(
+        back_populates="night", uselist=False, cascade="all, delete-orphan"
+    )
+    tickets: Mapped[list[Tickets]] = relationship(
+        back_populates="night", cascade="all, delete-orphan"
+    )
+    promoters: Mapped[list[Promoters]] = relationship(
+        back_populates="night", cascade="all, delete-orphan"
+    )
+    artists: Mapped[list[Artists]] = relationship(
+        back_populates="night", cascade="all, delete-orphan"
+    )
+    genres: Mapped[list[Genres]] = relationship(
+        back_populates="night", cascade="all, delete-orphan"
+    )
 
 
-class NightImages(Base):  # type: ignore
+class NightImages(Base):
     __tablename__ = "night_images"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
-    image_url = sqla.Column(sqla.String, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    night_id: Mapped[int] = mapped_column(ForeignKey("nights.id"), nullable=False)
+    image_url: Mapped[str] = mapped_column(nullable=False)
+
+    night: Mapped[Nights] = relationship(back_populates="images")
 
 
-class Countries(Base):  # type: ignore
+class Countries(Base):
     __tablename__ = "countries"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
-    url_code = sqla.Column(sqla.String, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    url_code: Mapped[str] = mapped_column(nullable=False)
 
 
-class Areas(Base):  # type: ignore
+class Areas(Base):
     __tablename__ = "areas"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
-    country_id = sqla.Column(sqla.Integer, ForeignKey("countries.id"), nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"), nullable=False)
 
 
-class Venues(Base):  # type: ignore
+class Venues(Base):
     __tablename__ = "venues"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
-    address = sqla.Column(sqla.String, nullable=True, index=False)
-    # area_id = sqla.Column(sqla.Integer, ForeignKey("areas.id"), nullable=False, index=False)
-    # website_url = sqla.Column(sqla.String, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str] = mapped_column(nullable=False)
+    night_id: Mapped[int] = mapped_column(ForeignKey("nights.id"), nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    address: Mapped[str | None] = mapped_column(nullable=True)
+
+    night: Mapped[Nights] = relationship(back_populates="venue")
 
 
-class Tickets(Base):  # type: ignore
+class Tickets(Base):
     __tablename__ = "tickets"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
-    title = sqla.Column(sqla.String, nullable=False, index=False)
-    price = sqla.Column(sqla.String, nullable=False, index=False)
-    on_sale_from = sqla.Column(sqla.DateTime, nullable=True, index=False)
-    valid_type = sqla.Column(sqla.String, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    night_id: Mapped[int] = mapped_column(ForeignKey("nights.id"), nullable=False)
+    title: Mapped[str] = mapped_column(nullable=False)
+    price: Mapped[str] = mapped_column(nullable=False)
+    on_sale_from: Mapped[datetime | None] = mapped_column(nullable=True)
+    valid_type: Mapped[str] = mapped_column(nullable=False)
+
+    night: Mapped[Nights] = relationship(back_populates="tickets")
 
 
-class Promoters(Base):  # type: ignore
+class Promoters(Base):
     __tablename__ = "promoters"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str] = mapped_column(nullable=False)
+    night_id: Mapped[int] = mapped_column(ForeignKey("nights.id"), nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+
+    night: Mapped[Nights] = relationship(back_populates="promoters")
 
 
-class Artists(Base):  # type: ignore
+class Artists(Base):
     __tablename__ = "artists"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=False, index=False)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=False, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
-    # TODO
-    # spotify_id = sqla.Column(sqla.String, nullable=True, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str] = mapped_column(nullable=False)
+    night_id: Mapped[int] = mapped_column(ForeignKey("nights.id"), nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+
+    night: Mapped[Nights] = relationship(back_populates="artists")
 
 
-class Genres(Base):  # type: ignore
+class Genres(Base):
     __tablename__ = "genres"
 
-    id = sqla.Column(sqla.Integer, primary_key=True, autoincrement=True)
-    ra_id = sqla.Column(sqla.String, nullable=True, index=False)
-    name = sqla.Column(sqla.String, nullable=False, index=False)
-    night_id = sqla.Column(sqla.Integer, ForeignKey("nights.id"), nullable=True, index=False)
-    # TODO
-    # artist_id = sqla.Column(sqla.Integer, ForeignKey("artists.id"), nullable=True, index=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    ra_id: Mapped[str | None] = mapped_column(nullable=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+    night_id: Mapped[int | None] = mapped_column(ForeignKey("nights.id"), nullable=True)
+
+    night: Mapped[Nights | None] = relationship(back_populates="genres")
